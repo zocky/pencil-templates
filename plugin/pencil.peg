@@ -1,0 +1,192 @@
+{
+  function STR(s) {
+    return JSON.stringify(String(s));
+  }
+}
+
+/* MAIN */
+main = source?
+
+eval 
+  = s:source { 
+    return eval('('+s+')').apply({data:window.DATA||[]}); 
+  }
+
+source 
+  = c:chunk+ { 
+    return 'function(){return ('+c.join(' + ')+')}';
+  }
+
+chunk = element / text
+
+/* TEXT */
+
+text "text"
+  = c:ctext+ { return STR(c.join('')); }
+  
+ctext = !LEFT c:. { return c; } 
+
+/* ELEMENTS */
+element
+  = block 
+  / partial
+  / call 
+  / raw
+  / !else i:include { return i; }
+
+raw "raw"
+  = LEFT3 v:value RIGHT3 { return '(' + v + ')'; }
+
+include "include"
+  = LEFT v:value RIGHT { return 'Pencil.ESC(' + v + ')'; } 
+
+value "value" = helper / single
+
+single "single" = $ e:expr { return e;}
+
+helper "helper"
+  = $ e:ident a:args &{ return a.length>5} { return 'Pencil.HELP(this,' + STR(e) + ','+a+')'; }
+
+
+partial "partial"
+  = LEFT '>' $ a:ident args:args $ RIGHT { 
+    return "Pencil.INCLUDE(this,"+STR(a)+","+args+")";
+  }
+
+call "call"
+  = LEFT ':' $ a:ident args:args $ RIGHT { 
+    return "Pencil.CALL(this,"+STR(a)+","+args+")";
+  }
+
+block "block"
+  = OPEN o:ident v:value? RIGHT t:source? e:else? c:close &{ return o == c; } {
+    return "Pencil.BLOCK(this,"+STR(o)+","+(t||'NOP')+"," + (e||'NOP')+"," + v + ")";
+  }
+close "close"
+  = CLOSE i:ident RIGHT { 
+    return i;
+  }
+else "else"
+  = ELSE s:source { 
+    return s; 
+  }
+
+/* ARGS */
+args 
+  = n:numbered nn:named { 
+    console.log(nn,n);
+    return nn + ',' + n;
+  }
+numbered 
+  = n:_numbered* { 
+    return '[' + n.join(',') + ']';
+  }
+_numbered 
+  = !_named _ e:expr { 
+    return e;
+  };
+named 
+  = n:_named* { 
+    return '{' + n.join(',') + '}';
+  }
+_named 
+  = _ i:ident $ '=' $ e:expr { 
+    return STR(i)+ ':' + e; 
+  }
+
+/* TOKENS */
+LEFT = '{{' $ 
+RIGHT = $ '}}'
+LEFT3 = '{{{' $ 
+RIGHT3 = $ '}}}'
+OPEN = LEFT '#' $
+CLOSE = LEFT '/' $
+CALL = LEFT ':' $
+INCLUDE = LEFT '>' $
+ELSE = LEFT $ 'else' $ RIGHT
+
+/****************************/
+
+/* EXPR */
+expr 
+  = a:atom e:_expr * {
+    return a + e.join('');
+  }
+_expr 
+  = $ o:OP $ a:atom { 
+    return (o+a); 
+  }
+
+atom 
+  = l:LOP $ a:atom {
+    return l + a;
+  }
+  / par
+  / fncall
+  / number 
+  / string
+  / array
+  / object
+  / path
+
+fncall
+  = p:path "(" $ h:expr ? a:fnarg* $ ")" { 
+    return p+'('+ [h].concat(a).map(function(n){
+      if (n=='') return 'undefined';
+      return n;
+    }).join(',')+')';
+  }
+fnarg 
+  = $ ',' $ a:expr? { return a}
+
+
+/* STEP */
+par
+  = '(' $ e:expr $ ')' {
+    return '(' + e + ')';
+  }
+step
+  = i:ident { return STR(i); } / par
+
+/* PATH */  
+path 
+  = THIS p:_path + { 
+    return 'Pencil.GET(this,' + p.join(',') + ')';
+  } 
+  / i:ident p:_path + { 
+    return 'Pencil.GET(this,' + STR(i) + ',' + p.join(',') + ')';
+  } 
+  / THIS {
+    return 'Pencil.GET(this)';
+  }
+  / i:ident {
+    return 'Pencil.GET(this,' + STR(i) + ')';
+  }
+_path
+  = $ '.' $ i:step { 
+    return i;
+  }
+/* TOKENS */
+OP = '++' / '--' / '==' / '!=' / '<=' / '>=' / '||' / '&&' / [+\-*/?:%<>]
+LOP = [~\-+!]
+THIS = 'this'
+$ = [ \n\t]*
+_ = [ \n\t]+
+
+/* LITERALS */
+array = '[' h:expr? a:_array* ']' { return '[' + [h].concat(a).join('') + ']'}
+_array = a:(',' expr?) { return a.join('')}
+
+object = '{' $ a:_object* b:__object? $ '}' { return '{' + (b ? a.concat(b) : a).join(',') + '}'} 
+_object = l:label $ ':' $ e:expr $ ',' { return l+':'+e }
+__object = l:label $ ':' $ e:expr  { return l+':'+e }
+label = ident / string
+number = a:digits b:('.' digits)? { return b ? a + '.' + b[1] : a }
+digits = d:[0-9]+  { return d.join('')}
+string = s:(sstring / dstring) { return STR(s)}
+special = [\t] {return '\\t'} / [\n] {return '\\n'}
+sstring = ['] s:csstring* ['] {return s.join('')}
+csstring = special / "\\'" / (!['] c:. {return c})
+dstring = ["] s:cdstring* ["] {return s.join('')}
+cdstring = special / '\\"' / (!["] c:. {return c})
+ident = ![0-9] c:[a-zA-Z0-9_$]+ {return c.join('')}
