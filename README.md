@@ -5,11 +5,15 @@ Like Handlebars, but with expressions.
 General
 -------
 This is a (not yet complete) reimplementation of Handlebars templates, extended to support JS-like expressions.
-It does not share any code with Handlebars, but it uses helper and block functions defined in Handlebars, so
+It does not share any code with Handlebars, but it uses helpers and block functions defined in Handlebars, so
 all Handlebars templates should (eventually) work the same. 
+
+It uses the old SPARK engine for now. In time, it will be upgraded to Meteor.UI and starbars.
 
 How-to
 ------
+Put your templates in `.pencil` files. The rest happens automagically, as expected in Meteor.
+
 The syntax is generally the same as in Handlebars, but you can use expressions:
     
     {{a}} plus one equals {{a+1}}.
