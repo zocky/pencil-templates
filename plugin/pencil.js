@@ -580,7 +580,7 @@ PencilParser = (function(){
         }
         if (result0 !== null) {
           result0 = (function(offset, a, args) { 
-            return "INCLUDE(this,"+STR(a)+","+args+")";
+            return "PARTIAL(this,"+STR(a)+","+args+")";
           })(pos0, result0[3], result0[4]);
         }
         if (result0 === null) {

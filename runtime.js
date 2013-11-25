@@ -39,5 +39,9 @@ Pencil = {
   },
   RAW: function(s) {
     return new Handlebars.SafeString(s);
+  },
+  PARTIAL: function(ctx,n,named,numbered) {
+    var ctx = _.extend({_0:n},ctx,named);
+    return Template[n](ctx);
   }
 }

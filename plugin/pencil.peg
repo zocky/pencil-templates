@@ -59,7 +59,7 @@ helper "helper"
 
 partial "partial"
   = LEFT '>' $ a:ident args:args $ RIGHT { 
-    return "INCLUDE(this,"+STR(a)+","+args+")";
+    return "PARTIAL(this,"+STR(a)+","+args+")";
   }
 
 call "call"
@@ -160,8 +160,8 @@ step "step"
   = i:ident { return STR(i); } / par
 
 CLOSEPAR 
-  = ')' / &{ 
-    ERR('unclosed (',pos) 
+  = ')' / . { 
+    ERR('unclosed (',pos)
   }
 /* PATH */  
 path 
