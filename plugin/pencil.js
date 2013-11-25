@@ -164,7 +164,7 @@ PencilParser = (function(){
         result0 = result0 !== null ? result0 : "";
         if (result0 !== null) {
           result0 = (function(offset, s) {
-          return 'function(data,args){return ('+s+').apply(data,args);}'
+          return s||'function(){return "";}';
         })(pos0, result0);
         }
         if (result0 === null) {
@@ -508,7 +508,7 @@ PencilParser = (function(){
           pos = pos1;
         }
         if (result0 !== null) {
-          result0 = (function(offset, e, a) { return 'HELP(this,' + STR(e) + ','+a+')'; })(pos0, result0[1], result0[2]);
+          result0 = (function(offset, e, a) { return 'HELPER(tmpl,this,' + STR(e) + ','+a+')'; })(pos0, result0[1], result0[2]);
         }
         if (result0 === null) {
           pos = pos0;
@@ -580,7 +580,7 @@ PencilParser = (function(){
         }
         if (result0 !== null) {
           result0 = (function(offset, a, args) { 
-            return "PARTIAL(this,"+STR(a)+","+args+")";
+            return "PARTIAL(tmpl,this,"+STR(a)+","+args+")";
           })(pos0, result0[3], result0[4]);
         }
         if (result0 === null) {
@@ -653,7 +653,7 @@ PencilParser = (function(){
         }
         if (result0 !== null) {
           result0 = (function(offset, a, args) { 
-            return "CALL(this,"+STR(a)+","+args+")";
+            return "CALL(tmpl,this,"+STR(a)+","+args+")";
           })(pos0, result0[3], result0[4]);
         }
         if (result0 === null) {
@@ -729,7 +729,7 @@ PencilParser = (function(){
         }
         if (result0 !== null) {
           result0 = (function(offset, o, v, t, e, c) {
-            return "BLOCK(this,"+STR(o)+","+(t||'NOP')+"," + (e||'NOP')+"," + v + ")";
+            return "BLOCK(tmpl,this,"+STR(o)+","+(t||'NOP')+"," + (e||'NOP')+"," + v + ")";
           })(pos0, result0[1], result0[2], result0[4], result0[5], result0[6]);
         }
         if (result0 === null) {
@@ -1718,7 +1718,7 @@ PencilParser = (function(){
         }
         if (result0 !== null) {
           result0 = (function(offset, p) { 
-            return 'GET(this,' + p.join(',') + ')';
+            return 'GET(tmpl,this,' + p.join(',') + ')';
           })(pos0, result0[1]);
         }
         if (result0 === null) {
@@ -1751,7 +1751,7 @@ PencilParser = (function(){
           }
           if (result0 !== null) {
             result0 = (function(offset, i, p) { 
-              return 'GET(this,' + STR(i) + ',' + p.join(',') + ')';
+              return 'GET(tmpl,this,' + STR(i) + ',' + p.join(',') + ')';
             })(pos0, result0[0], result0[1]);
           }
           if (result0 === null) {
@@ -1762,7 +1762,7 @@ PencilParser = (function(){
             result0 = parse_THIS();
             if (result0 !== null) {
               result0 = (function(offset) {
-                return 'GET(this)';
+                return 'GET(tmpl,this)';
               })(pos0);
             }
             if (result0 === null) {
@@ -1773,7 +1773,7 @@ PencilParser = (function(){
               result0 = parse_ident();
               if (result0 !== null) {
                 result0 = (function(offset, i) {
-                  return 'GET(this,' + STR(i) + ')';
+                  return 'GET(tmpl,this,' + STR(i) + ')';
                 })(pos0, result0);
               }
               if (result0 === null) {

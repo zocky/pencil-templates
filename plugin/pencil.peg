@@ -13,7 +13,7 @@
 
 /* MAIN */
 main = s:source? {
-  return 'function(data,args){return ('+s+').apply(data,args);}'
+  return s||'function(){return "";}';
 }
 
 eval 
@@ -54,24 +54,24 @@ value "value" = helper / single
 single "single" = $ e:expr { return e;}
 
 helper "helper"
-  = $ e:ident a:args &{ return a.length>5} { return 'HELP(this,' + STR(e) + ','+a+')'; }
+  = $ e:ident a:args &{ return a.length>5} { return 'HELPER(tmpl,this,' + STR(e) + ','+a+')'; }
 
 
 partial "partial"
   = LEFT '>' $ a:ident args:args $ RIGHT { 
-    return "PARTIAL(this,"+STR(a)+","+args+")";
+    return "PARTIAL(tmpl,this,"+STR(a)+","+args+")";
   }
 
 call "call"
   = LEFT ':' $ a:ident args:args $ RIGHT { 
-    return "CALL(this,"+STR(a)+","+args+")";
+    return "CALL(tmpl,this,"+STR(a)+","+args+")";
   }
 
 block "block"
   = OPEN o:ident v:value? RIGHT t:source? e:else? c:close &{ 
       return o == c || ERR('{{/'+c+'}} does not match {{#'+o+'}}',pos);
     } {
-    return "BLOCK(this,"+STR(o)+","+(t||'NOP')+"," + (e||'NOP')+"," + v + ")";
+    return "BLOCK(tmpl,this,"+STR(o)+","+(t||'NOP')+"," + (e||'NOP')+"," + v + ")";
   }
 close "close"
   = CLOSE i:ident RIGHT { 
@@ -166,16 +166,16 @@ CLOSEPAR
 /* PATH */  
 path 
   = THIS p:_path + { 
-    return 'GET(this,' + p.join(',') + ')';
+    return 'GET(tmpl,this,' + p.join(',') + ')';
   } 
   / i:ident p:_path + { 
-    return 'GET(this,' + STR(i) + ',' + p.join(',') + ')';
+    return 'GET(tmpl,this,' + STR(i) + ',' + p.join(',') + ')';
   } 
   / THIS {
-    return 'GET(this)';
+    return 'GET(tmpl,this)';
   }
   / i:ident {
-    return 'GET(this,' + STR(i) + ')';
+    return 'GET(tmpl,this,' + STR(i) + ')';
   }
 _path
   = $ '.' s:bstring {

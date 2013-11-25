@@ -49,7 +49,7 @@ Plugin.registerSourceHandler("pencil", function(compileStep) {
   code += Object.keys(results.templates).map(function(n) {
     var t = results.templates[n];
     try {
-      var compiled = PencilParser.parse(t.source);
+      var compiled = 'function(data,args) { var tmpl='+JSON.stringify(n) + '; console.time("t");var res = ('+PencilParser.parse(t.source)+ ').apply(data,args); console.timeEnd("t"); return res}';
     } catch (e) {
       var lines = contents.slice(0,e.offset + t.offset).split('\n');
       compileStep.error({
