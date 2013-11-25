@@ -10,9 +10,7 @@ Pencil = {
   GET: function(ctx,root) {
     var td = Template[ctx._0]._tmpl_data;
     var obj = first(td.helpers[root],ctx[root]);
-    console.log('found',obj);
     var obj = run(ctx,obj);
-    console.log('run',obj);
     for (var i=2; i< arguments.length; i++) {  
       if (!obj) break;
       obj = obj[arguments[i]];
@@ -22,9 +20,7 @@ Pencil = {
   HELP: function(ctx,n,named,numbered) {
     var td = Template[ctx._0]._tmpl_data;
     var fn = first(td.helpers[n],Handlebars._default_helpers[n],ctx[n]);
-    console.log(fn,numbered);
     var res = run(ctx,fn,numbered.concat(ctx));
-    console.log('res',res,fn(7,34,4));
     return res;
   },
   BLOCK: function(ctx,n,yes,no,value) {

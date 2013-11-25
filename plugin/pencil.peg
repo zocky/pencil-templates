@@ -2,10 +2,19 @@
   function STR(s) {
     return JSON.stringify(String(s));
   }
+  
+  function ERR(msg,off) {
+    throw {
+      message: msg,
+      offset: off,
+    }
+  }
 }
 
 /* MAIN */
-main = source?
+main = s:source? {
+  return 'function(data,args){return ('+s+').apply(data,args);}'
+}
 
 eval 
   = s:source { 
@@ -14,7 +23,7 @@ eval
 
 source 
   = c:chunk+ { 
-    return 'function(){return ('+c.join(' + ')+')}';
+    return 'function(){with(Pencil){return ('+c.join(' + ')+')}}';
   }
 
 chunk = element / text
@@ -38,29 +47,31 @@ raw "raw"
   = LEFT3 v:value RIGHT3 { return '(' + v + ')'; }
 
 include "include"
-  = LEFT v:value RIGHT { return 'Pencil.ESC(' + v + ')'; } 
+  = LEFT v:value RIGHT { return 'ESC(' + v + ')'; } 
 
 value "value" = helper / single
 
 single "single" = $ e:expr { return e;}
 
 helper "helper"
-  = $ e:ident a:args &{ return a.length>5} { return 'Pencil.HELP(this,' + STR(e) + ','+a+')'; }
+  = $ e:ident a:args &{ return a.length>5} { return 'HELP(this,' + STR(e) + ','+a+')'; }
 
 
 partial "partial"
   = LEFT '>' $ a:ident args:args $ RIGHT { 
-    return "Pencil.INCLUDE(this,"+STR(a)+","+args+")";
+    return "INCLUDE(this,"+STR(a)+","+args+")";
   }
 
 call "call"
   = LEFT ':' $ a:ident args:args $ RIGHT { 
-    return "Pencil.CALL(this,"+STR(a)+","+args+")";
+    return "CALL(this,"+STR(a)+","+args+")";
   }
 
 block "block"
-  = OPEN o:ident v:value? RIGHT t:source? e:else? c:close &{ return o == c; } {
-    return "Pencil.BLOCK(this,"+STR(o)+","+(t||'NOP')+"," + (e||'NOP')+"," + v + ")";
+  = OPEN o:ident v:value? RIGHT t:source? e:else? c:close &{ 
+      return o == c || ERR('{{/'+c+'}} does not match {{#'+o+'}}',pos);
+    } {
+    return "BLOCK(this,"+STR(o)+","+(t||'NOP')+"," + (e||'NOP')+"," + v + ")";
   }
 close "close"
   = CLOSE i:ident RIGHT { 
@@ -117,7 +128,7 @@ _expr
     return (o+a); 
   }
 
-atom 
+atom "atom"
   = l:LOP $ a:atom {
     return l + a;
   }
@@ -130,7 +141,7 @@ atom
   / path
 
 fncall
-  = p:path "(" $ h:expr ? a:fnarg* $ ")" { 
+  = p:path "(" $ h:expr ? a:fnarg* $ CLOSEPAR { 
     return p+'('+ [h].concat(a).map(function(n){
       if (n=='') return 'undefined';
       return n;
@@ -141,31 +152,42 @@ fnarg
 
 
 /* STEP */
-par
-  = '(' $ e:expr $ ')' {
+par "par"
+  = '(' $ e:expr $ CLOSEPAR {
     return '(' + e + ')';
   }
-step
+step "step"
   = i:ident { return STR(i); } / par
 
+CLOSEPAR 
+  = ')' / &{ 
+    ERR('unclosed (',pos) 
+  }
 /* PATH */  
 path 
   = THIS p:_path + { 
-    return 'Pencil.GET(this,' + p.join(',') + ')';
+    return 'GET(this,' + p.join(',') + ')';
   } 
   / i:ident p:_path + { 
-    return 'Pencil.GET(this,' + STR(i) + ',' + p.join(',') + ')';
+    return 'GET(this,' + STR(i) + ',' + p.join(',') + ')';
   } 
   / THIS {
-    return 'Pencil.GET(this)';
+    return 'GET(this)';
   }
   / i:ident {
-    return 'Pencil.GET(this,' + STR(i) + ')';
+    return 'GET(this,' + STR(i) + ')';
   }
 _path
-  = $ '.' $ i:step { 
+  = $ '.' s:bstring {
+    return STR(s);
+  }
+  / '[' $ e:expr $ ']' { 
+    return e; 
+  }
+  / $ '.' $ i:step { 
     return i;
   }
+  
 /* TOKENS */
 OP = '++' / '--' / '==' / '!=' / '<=' / '>=' / '||' / '&&' / [+\-*/?:%<>]
 LOP = [~\-+!]
@@ -186,7 +208,9 @@ digits = d:[0-9]+  { return d.join('')}
 string = s:(sstring / dstring) { return STR(s)}
 special = [\t] {return '\\t'} / [\n] {return '\\n'}
 sstring = ['] s:csstring* ['] {return s.join('')}
-csstring = special / "\\'" / (!['] c:. {return c})
+csstring = special / "\\'" / (c:[^'] {return c})
 dstring = ["] s:cdstring* ["] {return s.join('')}
-cdstring = special / '\\"' / (!["] c:. {return c})
+cdstring = special / '\\"' / (c:[^"] {return c})
+bstring = '[' s:cbstring* ']' {return s.join('')}
+cbstring = special / '\\]' / (c:[^\]] {return c})
 ident = ![0-9] c:[a-zA-Z0-9_$]+ {return c.join('')}

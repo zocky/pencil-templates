@@ -13,11 +13,12 @@ Plugin.registerSourceHandler("pencil", function(compileStep) {
   // religion on that
 
 
+
   var contents = compileStep.read().toString('utf8');
   try {
     var results = template_scanner.scan(contents, compileStep.inputPath);
   } catch (e) {
-    if (e instanceof template_scanner.ParseError) {
+    if (true || e instanceof template_scanner.ParseError) {
       compileStep.error({
         message: e.message,
         sourcePath: compileStep.inputPath,
@@ -37,24 +38,34 @@ Plugin.registerSourceHandler("pencil", function(compileStep) {
   var code = '';
   if (results.body.length) {
     var text = results.body.join('\n');
-    var compiled = 'function() { return ' + JSON.stringify (text) + '; }'
     
+    var compiled = 'function() { return ' + JSON.stringify (text) + '; }'
+    console.log('cmp',compiled);
     code += "Meteor.startup(function(){" +
       "document.body.appendChild(Spark.render(" +
       "Template.__define__(null," + compiled + ")));});";
   }
   
   code += Object.keys(results.templates).map(function(n) {
-    console.log(n,results.templates[n]);
-    var compiled = PencilParser.parse(results.templates[n]);
-    
-    return "Template.__define__(" + JSON.stringify(n) + ", function(ctx){console.log(this,ctx); return (" + compiled + ").apply(ctx);})\n";
+    var t = results.templates[n];
+    try {
+      var compiled = PencilParser.parse(t.source);
+    } catch (e) {
+      var lines = contents.slice(0,e.offset + t.offset).split('\n');
+      compileStep.error({
+        message: e.message,
+        sourcePath: compileStep.inputPath,
+        offset: e.offset + t.offset,
+        line: lines.length,
+        column: lines.pop().length
+      })
+      return;
+    }
+    return "Template.__define__(" + JSON.stringify(n) + ',' + compiled + ')\n';
   }).join('\n');
 
   if (!code.trim()) return;
   
-  console.log('code',code);
-
   compileStep.addJavaScript({
     path: compileStep.inputPath+'.__compiled__.js',
     sourcePath: compileStep.inputPath,

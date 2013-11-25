@@ -49,14 +49,20 @@ template_scanner = {
           case 'body':
           case 'head':
             if (n.attr) throw 'attributes not supported';
-            ret[t].push(nextn.text);
+            ret[t].push({
+              source: nextn.text,
+              offset: nextn.pos
+            });
             break;
           case 'template':
             var aa = parse(n.attr,/([\w]+)\s*=\s*"([^"]*)"/,['name','value']);
             var name = null; for (var j in aa) if (aa[j].name == 'name') { name = aa[j].value; break };
             if (!name) throw 'template must have a name';
             aa.filter(function(a){return a.name.toLowerCase });
-            ret.templates[name]=nextn.text;
+            ret.templates[name]={
+              source: nextn.text,
+              offset: nextn.pos,
+            }
           }
         }
       }
