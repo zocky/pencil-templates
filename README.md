@@ -36,9 +36,9 @@ Currently unsupported features of Handlebars:
 * @variables
 * ../ and ./ access
 * comments
-* this.[kind].of.path, 
 
 Currently unsupported features in expressions:
 * You can include Array and Object literals, but not RegExps for now. Will probably change.
 * No bitwise operators. Could change.
-* this['kind'].of.path
+
+Also, error reporting is sketchy.
