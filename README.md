@@ -31,7 +31,6 @@ Expressions are generally the same as in JS, but:
 * Strings can span lines.
 * There must not be any whitespace before `()` in function calls. This is required to allow helper arguments to
   be separated by space. 
-* this.[kind].of.path doesn't work yet, but you can use this.('kind').instead. 
 
 
 Caveats
