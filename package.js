@@ -14,8 +14,15 @@ Package._transitional_registerBuildPlugin({
 
 // This on_use describes the *runtime* implications of using this package.
 Package.on_use(function (api) {
-
-  api.imply(['meteor','spark','templating'], 'client');
+  api.imply(['meteor','spark','handlebars'], 'client');
   api.add_files(['runtime.js'],'client');
   api.export('Pencil');
 });
+
+/*
+Package.on_test(function (api) {
+  api.use(['pencil','tinytest','test-helpers'], ['client','server']);
+  api.add_files("plugin/pencil.js",'server');
+  api.add_files(['pencil-test.js'],['client','server']);
+});
+*/

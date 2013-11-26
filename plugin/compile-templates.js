@@ -16,56 +16,39 @@ Plugin.registerSourceHandler("pencil", function(compileStep) {
 
   var contents = compileStep.read().toString('utf8');
   try {
-    var results = template_scanner.scan(contents, compileStep.inputPath);
+    var parts = PencilParser.parse(contents);
   } catch (e) {
-    if (true || e instanceof template_scanner.ParseError) {
+    if (true || e instanceof parts.parseError) {
+      var lines = contents.slice(0,e.offset).split('\n');
       compileStep.error({
         message: e.message,
         sourcePath: compileStep.inputPath,
-        line: e.line
-      });
-      return;
-    } else
-      throw e;
-  }
-
-  if (results.head.length) compileStep.appendDocument({ section: "head", data: results.head.join('\n') });
-
-  if (results.body) compileStep.appendDocument({ section: "body", data: results.body.join('\n') });
-
-  // XXX generate a source map
-
-  var code = '';
-  if (results.body.length) {
-    var text = results.body.join('\n');
-    
-    var compiled = 'function() { return ' + JSON.stringify (text) + '; }'
-    console.log('cmp',compiled);
-    code += "Meteor.startup(function(){" +
-      "document.body.appendChild(Spark.render(" +
-      "Template.__define__(null," + compiled + ")));});";
-  }
-  
-  code += Object.keys(results.templates).map(function(n) {
-    var t = results.templates[n];
-    try {
-      var compiled = 'function(data,args) { var tmpl='+JSON.stringify(n) + '; console.time("t");var res = ('+PencilParser.parse(t.source)+ ').apply(data,args); console.timeEnd("t"); return res}';
-    } catch (e) {
-      var lines = contents.slice(0,e.offset + t.offset).split('\n');
-      compileStep.error({
-        message: e.message,
-        sourcePath: compileStep.inputPath,
-        offset: e.offset + t.offset,
         line: lines.length,
         column: lines.pop().length
-      })
+      });
       return;
+    } else throw e;
+  } 
+  var code = '';
+  parts.forEach(function(n) {
+    console.log(n.type, n.name, String(n.source));
+    switch (n.type) {
+    case 'head':
+      compileStep.appendDocument({ section: "head", data: n.source({}) });
+      break;
+    case 'body': 
+      code += "Meteor.startup(function(){" +
+        "document.body.appendChild(Spark.render(" +
+        "Template.__define__(null," + String(n.source) + ")));});";
+      break;
+    case 'template':
+      console.log(n);
+      code += "Template.__define__(" + JSON.stringify(n.name) +',' + String(n.source) + ');\n';
     }
-    return "Template.__define__(" + JSON.stringify(n) + ',' + compiled + ')\n';
-  }).join('\n');
-
-  if (!code.trim()) return;
+  })
   
+  if (!code.trim()) return;
+  console.log('success',code);
   compileStep.addJavaScript({
     path: compileStep.inputPath+'.__compiled__.js',
     sourcePath: compileStep.inputPath,

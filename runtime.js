@@ -25,9 +25,6 @@ var bind = function(ctx,fn) {
 
 var decorateBlockFn = function(fn, old_data) {
   return function(data) {
-    // don't create spurious annotations when data is same
-    // as before (or when transitioning between e.g. `window` and
-    // `undefined`)
     if ((data || Handlebars._defaultThis) ===
         (old_data || Handlebars._defaultThis))
       return fn(data);
@@ -37,46 +34,52 @@ var decorateBlockFn = function(fn, old_data) {
 };
 
 Pencil = {
-  GET: function(tmpl,ctx,root) {
+  GET: function GET(tmpl,ctx,root) {
+    var path = arguments;
     var td = Template[tmpl]._tmpl_data;
-    var obj = first(td.helpers[root],ctx[root]);
-    var obj = run(ctx,obj);
-    for (var i=3; i< arguments.length; i++) {  
-      if (!obj) break;
-      obj = obj[arguments[i]];
+    var obj = first(td.helpers && td.helpers[root],Handlebars._default_helpers[root],ctx[root]);
+    var ctx = _.extend({},ctx);
+    var res = function() { 
+      var ret = run(ctx,obj,[{hash:{}}]);
+      for (var i=3; i< path.length; i++) {  
+        if (!ret) break;
+        ret = ret[path[i]];
+      }
+      return (!ret && isNaN(ret)) ? '' : ret;
     }
-    return (!obj && isNaN(obj)) ? '' : obj;
+    return branch(tmpl+'-'+root,res);
   },
-  HELPER: function(tmpl,ctx,n,named,numbered) {
+  HELPER: function HELPER(tmpl,ctx,n,named,numbered) {
     var td = Template[tmpl]._tmpl_data;
-    var fn = first(td.helpers[n],Handlebars._default_helpers[n],ctx[n]);
-    var res = bind(ctx,fn,numbered.concat(ctx));
+    var fn = first(td.helpers && td.helpers[n],Handlebars._default_helpers[n],ctx[n]);
+    var ctx = _.extend({},ctx);
+    var named = _.extend({},named);
+    var res = function() { return run(ctx,fn,numbered.concat({hash:named})); }
     return branch(tmpl+'-'+n,res);
   },
-  BLOCK: function(tmpl,ctx,n,yes,no,value) {
+  BLOCK: function BLOCK(tmpl,ctx,n,yes,no,value) {
     var td = Template[tmpl]._tmpl_data;
     var fn = Handlebars._default_helpers[n];
     if(!fn) return '';
     
-    var block = decorateBlockFn( function (data) {
-      return yes.apply(value);
-    }, ctx);
+    var block = decorateBlockFn( yes, ctx);
     
-    block = function(data){ return yes && yes.apply(_.extend({},ctx,data)) || ''};
-        
     block.fn = block;
-    block.inverse = decorateBlockFn( function (data) {
-      return no.apply(value);
-    }, ctx);
+    block.inverse = decorateBlockFn( no, ctx);
     var args = [value,block]
     var res = run(ctx,fn,args);
     return res;
   },
-  PARTIAL: function(tmpl,ctx,n,named,numbered) {
-    var ctx = _.extend({},ctx,named);
-    return branch(tmpl+'-'+n,Template[tmpl]);
+  PARTIAL: function PARTIAL(tmpl,ctx,n,named,numbered) {
+    var args = _.extend({},ctx,named);
+    
+    var html = branch(n, (function () {
+      return String(Template[n].bind(Template,args)());
+    }));
+    return html
   },
-  ESC: function(s) {
+  ESC: function ESC(s) {
+    return s;
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   },
   RAW: function(s) {

@@ -3,6 +3,17 @@
     return JSON.stringify(String(s));
   }
   
+  function APPLY(fn) {
+    return new Function('data','return ('+fn+').apply(data)');
+  }
+  
+  function FN(fn) {
+    return APPLY('function(){with(Pencil){return ('+fn+')}}');
+  }
+  function TMPL(name,fn) {
+    return APPLY('function(){var tmpl='+STR(name)+'; with(Pencil){return ('+fn+')}}');
+  }
+  
   function ERR(msg,off) {
     throw {
       message: msg,
@@ -11,19 +22,55 @@
   }
 }
 
-/* MAIN */
-main = s:source? {
-  return s||'function(){return "";}';
-}
 
-eval 
-  = s:source { 
-    return eval('('+s+')').apply({data:window.DATA||[]}); 
+/* PARTS */
+
+file = p:pieces { return p || []}
+
+pieces = p:piece+ { return p;}
+
+piece = part / junk
+
+part 
+  = b:begin_part s:source? e:must_end_part {
+      e = e.toLowerCase(); b.type = b.type.toLowerCase();
+      if (e != b.type) ERR('</'+e+'> does not match <'+b.type+'>',pos);
+      if (b.type != 'template' && b.name !== undefined) ERR('only templates can have names');
+      b.source = b.name ? TMPL(b.name,s) : FN(s);
+      return b;
+    }
+
+begin_part = OPEN_TAG b:begin_part_type CLOSE_TAG { return b; }
+end_part = OPEN_END_TAG e:end_part_type CLOSE_TAG { return e; } 
+must_end_part = end_part / { ERR('unclosed part',pos) }
+
+begin_part_type
+  = "head"i {
+    return {type:'head'}
   }
+  / "body"i {
+    return {type:'body'}
+  } 
+  / "template"i n:part_name {
+    return {type:'template',name:n}
+  }
+part_name = $ "name" $ "=" $ '"' c:[^"]* '"' { return c.join('')}
+end_part_type = "head"i / "body"i / "template"
+
+OPEN_TAG "opentag" = "<" $
+OPEN_END_TAG = '<' $ '/' $
+CLOSE_TAG = $ '>' / { ERR('expected >',pos); }
+
+junk = 
+  (!begin_part .)+ { 
+    return {type:'junk'}; 
+  }
+
+/* MAIN */
 
 source 
   = c:chunk+ { 
-    return 'function(){with(Pencil){return ('+c.join(' + ')+')}}';
+    return c.join(' + ');
   }
 
 chunk = element / text
@@ -31,17 +78,24 @@ chunk = element / text
 /* TEXT */
 
 text "text"
-  = c:ctext+ { return STR(c.join('')); }
-  
-ctext = !LEFT c:. { return c; } 
+  = c:ctext+ { console.log(c.join('')); return STR(c.join('')); }
+ctext = !LEFT !end_part c:. { return c; } 
+
 
 /* ELEMENTS */
 element
   = block 
+  / comment
   / partial
   / call 
   / raw
   / !else i:include { return i; }
+
+comment
+  = LEFT '!--' cmstring "--" RIGHT { return '""'; }
+
+cmstring = c: ccmstring * { return c.join(''); }
+ccmstring = !("--" RIGHT) c:. { return c; }
 
 raw "raw"
   = LEFT3 v:value RIGHT3 { return '(' + v + ')'; }
@@ -71,7 +125,7 @@ block "block"
   = OPEN o:ident v:value? RIGHT t:source? e:else? c:close &{ 
       return o == c || ERR('{{/'+c+'}} does not match {{#'+o+'}}',pos);
     } {
-    return "BLOCK(tmpl,this,"+STR(o)+","+(t||'NOP')+"," + (e||'NOP')+"," + v + ")";
+    return "BLOCK(tmpl,this,"+STR(o)+","+(t?FN(t):'NOP')+"," + (e?FN(e):'NOP')+"," + v + ")";
   }
 close "close"
   = CLOSE i:ident RIGHT { 
