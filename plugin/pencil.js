@@ -251,6 +251,7 @@ PencilParser = (function(){
               if (e != b.type) ERR('</'+e+'> does not match <'+b.type+'>',pos);
               if (b.type != 'template' && b.name !== undefined) ERR('only templates can have names');
               b.source = b.name ? TMPL(b.name,s) : FN(s);
+              b.source = String(b.source);
               return b;
             })(pos0, result0[0], result0[1], result0[2]);
         }
@@ -841,7 +842,7 @@ PencilParser = (function(){
           result0 = null;
         }
         if (result0 !== null) {
-          result0 = (function(offset, c) { return STR(c.join('')); })(pos0, result0);
+          result0 = (function(offset, c) { console.log(c.join('')); return STR(c.join('')); })(pos0, result0);
         }
         if (result0 === null) {
           pos = pos0;
@@ -1493,7 +1494,7 @@ PencilParser = (function(){
         }
         if (result0 !== null) {
           result0 = (function(offset, o, v, t, e, c) {
-            return "BLOCK(tmpl,this,"+STR(o)+","+(t?FN(t):'')+"," + (e?FN(e):'')+"," + v + ")";
+            return "BLOCK(tmpl,this,"+STR(o)+","+(t?FN(t):NOP)+"," + (e?FN(e):NOP)+"," + v + ")";
           })(pos0, result0[1], result0[2], result0[4], result0[5], result0[6]);
         }
         if (result0 === null) {
@@ -1603,6 +1604,7 @@ PencilParser = (function(){
         }
         if (result0 !== null) {
           result0 = (function(offset, n, nn) { 
+            console.log(nn,n);
             return nn + ',' + n;
           })(pos0, result0[0], result0[1]);
         }
@@ -2178,19 +2180,63 @@ PencilParser = (function(){
           pos = pos0;
         }
         if (result0 === null) {
-          result0 = parse_par();
+          if (input.substr(pos, 4) === "null") {
+            result0 = "null";
+            pos += 4;
+          } else {
+            result0 = null;
+            if (reportFailures === 0) {
+              matchFailed("\"null\"");
+            }
+          }
           if (result0 === null) {
-            result0 = parse_fncall();
+            if (input.substr(pos, 9) === "undefined") {
+              result0 = "undefined";
+              pos += 9;
+            } else {
+              result0 = null;
+              if (reportFailures === 0) {
+                matchFailed("\"undefined\"");
+              }
+            }
             if (result0 === null) {
-              result0 = parse_number();
+              if (input.substr(pos, 4) === "true") {
+                result0 = "true";
+                pos += 4;
+              } else {
+                result0 = null;
+                if (reportFailures === 0) {
+                  matchFailed("\"true\"");
+                }
+              }
               if (result0 === null) {
-                result0 = parse_string();
+                if (input.substr(pos, 5) === "false") {
+                  result0 = "false";
+                  pos += 5;
+                } else {
+                  result0 = null;
+                  if (reportFailures === 0) {
+                    matchFailed("\"false\"");
+                  }
+                }
                 if (result0 === null) {
-                  result0 = parse_array();
+                  result0 = parse_par();
                   if (result0 === null) {
-                    result0 = parse_object();
+                    result0 = parse_fncall();
                     if (result0 === null) {
-                      result0 = parse_path();
+                      result0 = parse_number();
+                      if (result0 === null) {
+                        result0 = parse_string();
+                        if (result0 === null) {
+                          result0 = parse_array();
+                          if (result0 === null) {
+                            result0 = parse_object();
+                            if (result0 === null) {
+                              result0 = parse_path();
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -2719,73 +2765,95 @@ PencilParser = (function(){
             }
           }
           if (result0 === null) {
-            if (input.substr(pos, 2) === "==") {
-              result0 = "==";
-              pos += 2;
+            if (input.substr(pos, 3) === "===") {
+              result0 = "===";
+              pos += 3;
             } else {
               result0 = null;
               if (reportFailures === 0) {
-                matchFailed("\"==\"");
+                matchFailed("\"===\"");
               }
             }
             if (result0 === null) {
-              if (input.substr(pos, 2) === "!=") {
-                result0 = "!=";
-                pos += 2;
+              if (input.substr(pos, 3) === "!==") {
+                result0 = "!==";
+                pos += 3;
               } else {
                 result0 = null;
                 if (reportFailures === 0) {
-                  matchFailed("\"!=\"");
+                  matchFailed("\"!==\"");
                 }
               }
               if (result0 === null) {
-                if (input.substr(pos, 2) === "<=") {
-                  result0 = "<=";
+                if (input.substr(pos, 2) === "==") {
+                  result0 = "==";
                   pos += 2;
                 } else {
                   result0 = null;
                   if (reportFailures === 0) {
-                    matchFailed("\"<=\"");
+                    matchFailed("\"==\"");
                   }
                 }
                 if (result0 === null) {
-                  if (input.substr(pos, 2) === ">=") {
-                    result0 = ">=";
+                  if (input.substr(pos, 2) === "!=") {
+                    result0 = "!=";
                     pos += 2;
                   } else {
                     result0 = null;
                     if (reportFailures === 0) {
-                      matchFailed("\">=\"");
+                      matchFailed("\"!=\"");
                     }
                   }
                   if (result0 === null) {
-                    if (input.substr(pos, 2) === "||") {
-                      result0 = "||";
+                    if (input.substr(pos, 2) === "<=") {
+                      result0 = "<=";
                       pos += 2;
                     } else {
                       result0 = null;
                       if (reportFailures === 0) {
-                        matchFailed("\"||\"");
+                        matchFailed("\"<=\"");
                       }
                     }
                     if (result0 === null) {
-                      if (input.substr(pos, 2) === "&&") {
-                        result0 = "&&";
+                      if (input.substr(pos, 2) === ">=") {
+                        result0 = ">=";
                         pos += 2;
                       } else {
                         result0 = null;
                         if (reportFailures === 0) {
-                          matchFailed("\"&&\"");
+                          matchFailed("\">=\"");
                         }
                       }
                       if (result0 === null) {
-                        if (/^[+\-*\/?:%<>]/.test(input.charAt(pos))) {
-                          result0 = input.charAt(pos);
-                          pos++;
+                        if (input.substr(pos, 2) === "||") {
+                          result0 = "||";
+                          pos += 2;
                         } else {
                           result0 = null;
                           if (reportFailures === 0) {
-                            matchFailed("[+\\-*\\/?:%<>]");
+                            matchFailed("\"||\"");
+                          }
+                        }
+                        if (result0 === null) {
+                          if (input.substr(pos, 2) === "&&") {
+                            result0 = "&&";
+                            pos += 2;
+                          } else {
+                            result0 = null;
+                            if (reportFailures === 0) {
+                              matchFailed("\"&&\"");
+                            }
+                          }
+                          if (result0 === null) {
+                            if (/^[+\-*\/?:%<>]/.test(input.charAt(pos))) {
+                              result0 = input.charAt(pos);
+                              pos++;
+                            } else {
+                              result0 = null;
+                              if (reportFailures === 0) {
+                                matchFailed("[+\\-*\\/?:%<>]");
+                              }
+                            }
                           }
                         }
                       }
@@ -3742,6 +3810,7 @@ PencilParser = (function(){
       }
       
       
+        var NOP = 'function(){return ""}';
         function STR(s) {
           return JSON.stringify(String(s));
         }

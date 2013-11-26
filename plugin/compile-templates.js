@@ -19,6 +19,7 @@ Plugin.registerSourceHandler("pencil", function(compileStep) {
     var parts = PencilParser.parse(contents);
   } catch (e) {
     if (true || e instanceof parts.parseError) {
+      console.log('error parsing',e);
       var lines = contents.slice(0,e.offset).split('\n');
       compileStep.error({
         message: e.message,
@@ -29,6 +30,7 @@ Plugin.registerSourceHandler("pencil", function(compileStep) {
       return;
     } else throw e;
   } 
+  console.log('got so far',code);
   var code = '';
   parts.forEach(function(n) {
     console.log(n.type, n.name, String(n.source));

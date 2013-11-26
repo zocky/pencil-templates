@@ -85,4 +85,5 @@ Pencil = {
   RAW: function(s) {
     return new Handlebars.SafeString(s);
   },
+  NOP: function(){return ''}
 }
