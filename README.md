@@ -36,9 +36,11 @@ Expressions are generally the same as in JS, but:
 Caveats
 -------
 Currently unsupported features of Handlebars:
-* @variables
+* @variables - These don't work in Meteor's handlebars either, but would be nice.
 * ../ and ./ access
-* comments
+* short-style comments `{{!...}}` - these clash with expressions 
+  (i.e. with the negation operator `!`) and will not be supported.
+  There will eventually be some sort of warning for this.
 
 Currently unsupported features in expressions:
 * You can include Array and Object literals, but not RegExps for now. Will probably change.
