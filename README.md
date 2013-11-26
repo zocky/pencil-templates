@@ -8,7 +8,7 @@ This is a (not yet complete) reimplementation of Handlebars templates, extended 
 It does not share any code with Handlebars, but it uses helpers and block functions defined in Handlebars, so
 all Handlebars templates should (eventually) work the same. 
 
-It uses the old SPARK engine for now. In time, it will be upgraded to Meteor.UI and starbars.
+It uses the old SPARK engine for now. In time, it will be upgraded to Meteor.UI and spacebars.
 
 How-to
 ------
